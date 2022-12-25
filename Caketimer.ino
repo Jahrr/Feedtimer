@@ -43,35 +43,123 @@
 // include the library code:
 #include <LiquidCrystal.h>
 #include <LiquidMenu.h>
+#include <ArxContainer.h>
 #include "Timer.h"
+#include "Button.h"
 
-// initialize the library by associating any needed LCD interface pin
-// with the arduino pin number it is connected to
+//Initialize pins
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
-//int seconds = 65;
-Timer timer;
-void setup() {
+const int upButtonPin = 30;
+const int middleButtonPin = 34;
+const int downButtonPin = 38;
 
+
+struct Selector{
+  char selector = '>';
+  int row = 0;
+  int column = 0;
+};
+
+//variables
+Timer timer;
+
+
+unsigned int TimerEntries = 4;
+unsigned int QueryPosition = 0;
+
+const char names[4][8]{"Timer 1", "Timer 2", "Timer 3", "Timer 4"};
+int pos[4]{0,1,2,3};
+
+LiquidLine line1(2,0, "Timer 1");
+LiquidLine line2(2,1, "Timer 2");
+LiquidLine line3(2,2, "Timer 3");
+LiquidLine line4(2,3, "Timer 4");
+
+LiquidLine lines[4]{line1, line2, line3, line4};
+
+
+
+
+
+int offset = 0;
+//LiquidLine selectorLine(0,0,">");
+
+LiquidScreen screen1;
+LiquidScreen screen2;
+LiquidScreen screen3;
+
+LiquidScreen screens[3]{screen1, screen2, screen3};
+bool arrowIsOnBottom = false;
+
+LiquidMenu menu(lcd, screens[0], screens[1], screens[2]);
+
+Selector selector;
+
+
+Button upButton(upButtonPin);
+Button middleButton(middleButtonPin);
+Button downButton(downButtonPin);
+
+void setup() {
   // set up the LCD's number of columns and rows:
-  lcd.begin(16, 2);
-  // Print a message to the LCD.
-  lcd.print("Timer Running...");
-  delay(1000);
-  timer.setDuration(10);
-  timer.start();
+  
+  Serial.begin(9600);
+  for(int i = 0; i < TimerEntries - 1; i++){
+    screens[i].add_line(lines[i]);
+    screens[i].add_line(lines[i+1]);
+  }
+
+
+  lcd.begin(16, 4);
+  menu.update();
+  lcd.setCursor(0, 0);
+  lcd.print(selector.selector);
+  lcd.setCursor(0, 0);
 }
 
 void loop() {
-  // set the cursor to column 0, line 1
-  // (note: line 1 is the second row, since counting begins with 0):
-  lcd.setCursor(0, 1);
-  if(!timer.manageTimer()){
-    lcd.setCursor(0,0);
-    lcd.print("Timer Finished");
-    lcd.setCursor(0,1);
+  lcd.setCursor(selector.column, selector.row);
+  lcd.print(selector.selector);
+  upButton.manageButton();
+  middleButton.manageButton();
+  downButton.manageButton();
+  if(upButton.isPressedOnce() && QueryPosition > 0){
+    selector.row--;
+    QueryPosition--;
+    if(arrowIsOnBottom)arrowIsOnBottom = false;
+    else{
+      for(int i = 0; i < TimerEntries; i++){
+        pos[i]++;
+        lines[i] = LiquidLine(2, pos[i], names[i]);
+        selector.row = 0;
+      }
+      menu--;
+    }
+    lcd.clear();
+    lcd.setCursor(selector.column, selector.row);
+    menu.update();
+    
+    Serial.println(selector.row);
+  }
+  if(downButton.isPressedOnce() && QueryPosition < TimerEntries - 1){
+    selector.row++;
+    QueryPosition++;
+    if(!arrowIsOnBottom)arrowIsOnBottom = true;
+    else {
+      for(int i = 0; i < TimerEntries; i++){
+      pos[i]--;
+      lines[i] = LiquidLine(2, pos[i], names[i]);
+      selector.row = 1;
+      }
+      menu++;
+    }
+    lcd.clear();
+    lcd.setCursor(selector.column, selector.row);
+    menu.update();
+  
+    Serial.println(selector.row);
   }
 
-  
-  lcd.print(timer.getDurationAsString());
+  //lcd.print("Hello");
 }
