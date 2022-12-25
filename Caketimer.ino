@@ -61,6 +61,19 @@ struct Selector{
   int column = 0;
 };
 
+struct TimerData{
+    TimerData(String title, int pos, int length) :  position{pos}, duration{length}{
+      for(int i = 0; i < 8; i++){
+        name[i] = title[i];
+      }
+    }
+    char name[8];
+    int position;
+    int duration;  
+};
+
+
+
 //variables
 Timer timer;
 
@@ -68,8 +81,13 @@ Timer timer;
 unsigned int TimerEntries = 4;
 unsigned int QueryPosition = 0;
 
-const char names[4][8]{"Timer 1", "Timer 2", "Timer 3", "Timer 4"};
-int pos[4]{0,1,2,3};
+TimerData td1("Timer 1", 0, 30);
+TimerData td2("Timer 2", 1, 30);
+TimerData td3("Timer 3", 2, 30);
+TimerData td4("Timer 4", 3, 30);
+
+TimerData datas[4]{td1, td2, td3, td4};
+
 
 LiquidLine line1(2,0, "Timer 1");
 LiquidLine line2(2,1, "Timer 2");
@@ -78,11 +96,6 @@ LiquidLine line4(2,3, "Timer 4");
 
 LiquidLine lines[4]{line1, line2, line3, line4};
 
-
-
-
-
-int offset = 0;
 //LiquidLine selectorLine(0,0,">");
 
 LiquidScreen screen1;
@@ -130,8 +143,8 @@ void loop() {
     if(arrowIsOnBottom)arrowIsOnBottom = false;
     else{
       for(int i = 0; i < TimerEntries; i++){
-        pos[i]++;
-        lines[i] = LiquidLine(2, pos[i], names[i]);
+        datas[i].position++;
+        lines[i] = LiquidLine(2, datas[i].position, datas[i].name);
         selector.row = 0;
       }
       menu--;
@@ -148,8 +161,8 @@ void loop() {
     if(!arrowIsOnBottom)arrowIsOnBottom = true;
     else {
       for(int i = 0; i < TimerEntries; i++){
-      pos[i]--;
-      lines[i] = LiquidLine(2, pos[i], names[i]);
+      datas[i].position--;
+      lines[i] = LiquidLine(2, datas[i].position, datas[i].name);
       selector.row = 1;
       }
       menu++;
