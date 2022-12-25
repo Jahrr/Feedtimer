@@ -14,9 +14,12 @@ public:
     void start();
     void reset();
     void stop();
+    void toggle();
     void setDuration(int durationInSeconds);
+    void setName(String n);
     int getDurationInSeconds() const;
     String getDurationAsString();
+    String getName();
     bool manageTimer();
 
 private:
@@ -26,6 +29,9 @@ private:
     int duration;
     int seconds;
     bool running;
+    char name[8];
+
+    unsigned long startingMillis;
 
 
 

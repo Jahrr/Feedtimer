@@ -72,6 +72,10 @@ struct TimerData{
     int duration;  
 };
 
+enum mode{
+MENU, TIMER
+  
+};
 
 
 //variables
@@ -80,11 +84,12 @@ Timer timer;
 
 unsigned int TimerEntries = 4;
 unsigned int QueryPosition = 0;
+unsigned int mode = MENU;
 
 TimerData td1("Timer 1", 0, 30);
-TimerData td2("Timer 2", 1, 30);
-TimerData td3("Timer 3", 2, 30);
-TimerData td4("Timer 4", 3, 30);
+TimerData td2("Timer 2", 1, 60);
+TimerData td3("Timer 3", 2, 90);
+TimerData td4("Timer 4", 3, 120);
 
 TimerData datas[4]{td1, td2, td3, td4};
 
@@ -93,6 +98,10 @@ LiquidLine line1(2,datas[0].position, datas[0].name);
 LiquidLine line2(2,datas[1].position, datas[1].name);
 LiquidLine line3(2,datas[2].position, datas[2].name);
 LiquidLine line4(2,datas[3].position, datas[3].name);
+
+//Maybe we can use this by allocating enough that we never need to resize it
+//create similar large arrays for screens
+//LiquidLine llines[5](5, line1);
 
 LiquidLine lines[4]{line1, line2, line3, line4};
 
@@ -131,12 +140,9 @@ void setup() {
   lcd.setCursor(0, 0);
 }
 
-void loop() {
+void runMenu(){
   lcd.setCursor(selector.column, selector.row);
   lcd.print(selector.selector);
-  upButton.manageButton();
-  middleButton.manageButton();
-  downButton.manageButton();
   if(upButton.isPressedOnce() && QueryPosition > 0){
     selector.row--;
     QueryPosition--;
@@ -167,12 +173,64 @@ void loop() {
       }
       menu++;
     }
+
     lcd.clear();
     lcd.setCursor(selector.column, selector.row);
     menu.update();
   
     Serial.println(selector.row);
   }
+  if(middleButton.isPressedOnce()){
 
-  //lcd.print("Hello");
+    timer.setDuration(datas[QueryPosition].duration);
+    timer.setName(String(datas[QueryPosition].name));
+    lcd.clear();
+    mode = TIMER;
+
+
+  }
+
+}
+
+void runTimer(){
+
+  lcd.setCursor(0,0);
+  lcd.print(timer.getName());
+  lcd.setCursor(0, 1);
+  lcd.print(timer.getDurationAsString());
+  timer.manageTimer();
+  if(middleButton.isPressedOnce()){
+    timer.toggle();
+  }
+  if(downButton.isPressedOnce()){
+    timer.stop();
+    lcd.clear();
+    menu.update();
+    lcd.setCursor(0, selector.row);
+    lcd.print(selector.selector);
+    lcd.setCursor(0, selector.row);
+    mode = MENU;
+  }
+
+}
+
+void addTimer(){
+
+
+
+
+
+
+
+
+}
+
+void loop() {
+  upButton.manageButton();
+  middleButton.manageButton();
+  downButton.manageButton();
+  if(mode == MENU)
+    runMenu();
+  else if(mode == TIMER)
+    runTimer();
 }
