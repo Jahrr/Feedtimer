@@ -89,10 +89,10 @@ TimerData td4("Timer 4", 3, 30);
 TimerData datas[4]{td1, td2, td3, td4};
 
 
-LiquidLine line1(2,0, "Timer 1");
-LiquidLine line2(2,1, "Timer 2");
-LiquidLine line3(2,2, "Timer 3");
-LiquidLine line4(2,3, "Timer 4");
+LiquidLine line1(2,datas[0].position, datas[0].name);
+LiquidLine line2(2,datas[1].position, datas[1].name);
+LiquidLine line3(2,datas[2].position, datas[2].name);
+LiquidLine line4(2,datas[3].position, datas[3].name);
 
 LiquidLine lines[4]{line1, line2, line3, line4};
 
