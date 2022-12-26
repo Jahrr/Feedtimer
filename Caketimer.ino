@@ -1,13 +1,4 @@
 /*
-  LiquidCrystal Library - Hello World
-
- Demonstrates the use a 16x2 LCD display.  The LiquidCrystal
- library works with all LCD displays that are compatible with the
- Hitachi HD44780 driver. There are many of them out there, and you
- can usually tell them by the 16-pin interface.
-
- This sketch prints "Hello World!" to the LCD
- and shows the time.
 
   The circuit:
  * LCD RS pin to digital pin 12
@@ -23,29 +14,25 @@
  * ends to +5V and ground
  * wiper to LCD VO pin (pin 3)
 
- Library originally added 18 Apr 2008
- by David A. Mellis
- library modified 5 Jul 2009
- by Limor Fried (http://www.ladyada.net)
- example added 9 Jul 2009
- by Tom Igoe
- modified 22 Nov 2010
- by Tom Igoe
- modified 7 Nov 2016
- by Arturo Guadalupi
+ This program is a timer that is intended to be connected to a caker/feeder. It can store multiple timers in EEPROM,
+ has an interactive menu, and a naming system.
 
- This example code is in the public domain.
+ TODO: Delete timers, Ability to backspace on name/duration of new timer, 
+ simplify and clean up code, add number support to naming system, 
+ make confirmation universal instead of being tied to duration
 
- http://www.arduino.cc/en/Tutorial/LiquidCrystalHelloWorld
+ Low Priority TODO: Rename timers, folders
 
 */
 
 // include the library code:
 #include <LiquidCrystal.h>
 #include <LiquidMenu.h>
-#include <ArxContainer.h>
+#include <EEPROM.h>
 #include "Timer.h"
 #include "Button.h"
+
+const bool canWrite = true;
 
 //Initialize pins
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
@@ -62,18 +49,32 @@ struct Selector{
 };
 
 struct TimerData{
-    TimerData(String title, int pos, int length) :  position{pos}, duration{length}{
-      for(int i = 0; i < 8; i++){
+    TimerData(){}
+    TimerData(const char* title, int pos, int length) : position{pos}, duration{length}{
+      int it = 0;
+      for(int i = 0; i < strlen(title); i++){
+        if(it >= 11){
+          break;
+        }
         name[i] = title[i];
-      }
+        it++;
+        }
+        for(;it<11;it++){
+          name[it]=' '; 
+
+        }
+        name[11] = '\0';
     }
-    char name[8];
+    char name[12];
     int position;
     int duration;  
 };
 
+
+
+
 enum mode{
-MENU, TIMER
+MENU, TIMER, ADDNAME, ADDDURATION, CONFIRM
   
 };
 
@@ -82,39 +83,27 @@ MENU, TIMER
 Timer timer;
 
 
-unsigned int TimerEntries = 4;
+unsigned int TimerEntries = 0;
 unsigned int QueryPosition = 0;
 unsigned int mode = MENU;
 
-TimerData td1("Timer 1", 0, 30);
-TimerData td2("Timer 2", 1, 60);
-TimerData td3("Timer 3", 2, 90);
-TimerData td4("Timer 4", 3, 120);
 
-TimerData datas[4]{td1, td2, td3, td4};
+TimerData td("NULL", 0, 0);
+TimerData addTimerData;
+
+TimerData datas[16](16, td);
 
 
-LiquidLine line1(2,datas[0].position, datas[0].name);
-LiquidLine line2(2,datas[1].position, datas[1].name);
-LiquidLine line3(2,datas[2].position, datas[2].name);
-LiquidLine line4(2,datas[3].position, datas[3].name);
+LiquidLine line(0,0,"");
 
-//Maybe we can use this by allocating enough that we never need to resize it
-//create similar large arrays for screens
-//LiquidLine llines[5](5, line1);
+LiquidLine lines[16](16, line);
 
-LiquidLine lines[4]{line1, line2, line3, line4};
+LiquidScreen screen;
 
-//LiquidLine selectorLine(0,0,">");
-
-LiquidScreen screen1;
-LiquidScreen screen2;
-LiquidScreen screen3;
-
-LiquidScreen screens[3]{screen1, screen2, screen3};
+LiquidScreen screens[15](15, screen);
 bool arrowIsOnBottom = false;
 
-LiquidMenu menu(lcd, screens[0], screens[1], screens[2]);
+LiquidMenu menu(lcd);
 
 Selector selector;
 
@@ -127,17 +116,35 @@ void setup() {
   // set up the LCD's number of columns and rows:
   
   Serial.begin(9600);
-  for(int i = 0; i < TimerEntries - 1; i++){
-    screens[i].add_line(lines[i]);
-    screens[i].add_line(lines[i+1]);
-  }
-
+  readAndParse();
+  datas[TimerEntries] = TimerData("Add", TimerEntries, 0);
+  TimerEntries++;
+  setupMenu();
 
   lcd.begin(16, 4);
   menu.update();
   lcd.setCursor(0, 0);
   lcd.print(selector.selector);
   lcd.setCursor(0, 0);
+}
+
+void setupMenu(){
+
+  for(int i = 0; i < TimerEntries; i++){
+    lines[i] = LiquidLine(2, datas[i].position, datas[i].name);
+  }
+
+  for(int i = 0; i < TimerEntries; i++){
+    screens[i] = LiquidScreen(lines[i]);
+    if(i + 1 < TimerEntries){
+      screens[i].add_line(lines[i+1]);
+    }
+  }
+  menu = LiquidMenu(lcd);
+  for(int i = 0; i < TimerEntries; i++){
+    menu.add_screen(screens[i]);
+  }
+  //Serial.println(menu.change_screen(&screens[QueryPosition]));
 }
 
 void runMenu(){
@@ -159,7 +166,6 @@ void runMenu(){
     lcd.setCursor(selector.column, selector.row);
     menu.update();
     
-    Serial.println(selector.row);
   }
   if(downButton.isPressedOnce() && QueryPosition < TimerEntries - 1){
     selector.row++;
@@ -178,14 +184,24 @@ void runMenu(){
     lcd.setCursor(selector.column, selector.row);
     menu.update();
   
-    Serial.println(selector.row);
+
   }
   if(middleButton.isPressedOnce()){
 
+    if(QueryPosition == TimerEntries - 1){
+      Serial.println("switching to add mode");
+      mode = ADDNAME;
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("Enter Name");
+      lcd.setCursor(0,1);
+      lcd.cursor();
+    }else{
     timer.setDuration(datas[QueryPosition].duration);
     timer.setName(String(datas[QueryPosition].name));
     lcd.clear();
     mode = TIMER;
+    }
 
 
   }
@@ -211,26 +227,271 @@ void runTimer(){
     lcd.setCursor(0, selector.row);
     mode = MENU;
   }
+  if(upButton.isPressedOnce()){
+    timer.addTime(10);
+  }
 
 }
 
-void addTimer(){
+
+void setAdd(String text){
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print(text);
+  lcd.setCursor(0,1);
+}
+
+void addTimerName(){
+static String timerName;
+static char currentChar = 'A' - 1;
+static int pos = 0;
+if(upButton.isPressedOnce()){
+  if(currentChar + 1 <= 'Z' && currentChar != ' ' && currentChar != '<' && currentChar != '>'){
+    setAdd("Enter Name");
+    lcd.print(timerName);
+    currentChar++;
+    lcd.print(currentChar);
+    lcd.setCursor(pos,1);
+  }else if(currentChar == ' '){
+    setAdd("Enter Name");
+    lcd.print(timerName);
+    currentChar = 'A';
+    lcd.print(currentChar);
+    lcd.setCursor(pos,1);
+  }else if(currentChar == '>'){
+    setAdd("Enter Name");
+    lcd.print(timerName);
+    currentChar = ' ';
+    lcd.print(currentChar);
+    lcd.setCursor(pos,1);    
+  }else if(currentChar == '<'){
+    setAdd("Enter Name");
+    lcd.print(timerName);
+    currentChar = '>';
+    lcd.print(currentChar);
+    lcd.setCursor(pos,1);    
+  }
+}
+  if(downButton.isPressedOnce()){
+    if(currentChar - 1 >= 'A'){
+      setAdd("Enter Name");
+      lcd.print(timerName);
+      currentChar--;
+      lcd.print(currentChar);
+      lcd.setCursor(pos,1);
+    }else if(currentChar == 'A'){
+      setAdd("Enter Name");
+      lcd.print(timerName);
+      currentChar = ' ';
+      lcd.print(currentChar);
+      lcd.setCursor(pos,1);    
+    }else if(currentChar == ' ' || currentChar == '@'){
+      setAdd("Enter Name");
+      lcd.print(timerName);
+      currentChar = '>';
+      lcd.print(currentChar);
+      lcd.setCursor(pos,1);    
+    }else if(currentChar == '>'){
+      setAdd("Enter Name");
+      lcd.print(timerName);
+      currentChar = '<';
+      lcd.print(currentChar);
+      lcd.setCursor(pos,1);    
+    }
+  }
+
+  if(middleButton.isPressedOnce()){ 
+    if(currentChar == '@'){
+      timerName += ' ';
+    }else if (currentChar == '>'){
+      //move to duration set
+      //write to allocated timerdata to prepare for write to eeprom/flash 
+      addTimerData = TimerData(timerName.c_str(), datas[TimerEntries - 1].position, 0);
+      timerName = "";
+      pos = 0;
+      currentChar = '@';      
+      mode = ADDDURATION;
+      setAdd("Enter Duration");
+      lcd.print("00:00");
+      lcd.setCursor(0,1);    
+      return;  
+    }else if (currentChar == '<'){ 
+      timerName = "";
+      pos = 0;
+      currentChar = 'A' - 1;
+      mode = MENU;
+      lcd.setCursor(0, selector.row);
+      lcd.print(selector.selector);
+      lcd.setCursor(0, selector.row);
+      lcd.noCursor();
+      lcd.clear();
+      menu.update();
+      return;
+    }else{
+    timerName += currentChar;
+    }
+    currentChar = 'A' - 1;
+    pos++;
+    setAdd("Enter Name");
+    lcd.print(timerName);
+
+  }
 
 
 
 
+}
+String currentDuration = "00:00";
+void addTimerDuration(){
+  
+  static int pos = 0;
+  if(upButton.isPressedOnce()){
+    if(currentDuration[pos] + 1 <= '9'){
+      currentDuration[pos]++;
+      setAdd("Enter Duration");
+      lcd.print(currentDuration);
+      lcd.setCursor(pos, 1);      
+    }
+  }if(downButton.isPressedOnce()){
+    if(currentDuration[pos] - 1 >= '0'){
+      currentDuration[pos]--;
+      setAdd("Enter Duration");
+      lcd.print(currentDuration);
+      lcd.setCursor(pos, 1);      
+    }
+  }if(middleButton.isPressedOnce()){
+    if(pos == 0 || pos == 3){
+      setAdd("Enter Duration");
+      lcd.print(currentDuration);
+      pos++;
+      lcd.setCursor(pos, 1);
+
+    }else if(pos == 1){
+      setAdd("Enter Duration");
+      lcd.print(currentDuration);
+      pos+=2;
+      lcd.setCursor(pos, 1);
+    }else if(pos == 4){
+      pos = 0;
+      setAdd("Confirm");
+      lcd.noCursor();
+      lcd.print("L/n R/y");
+      mode = CONFIRM;
+      Serial.println("Switching to mode::CONFIRM");
+      }
+    }
+  }
+
+
+void confirm(){
+
+
+      if(upButton.isPressedOnce()){
+                
+        String cleanDurationString;
+        cleanDurationString += currentDuration[0];
+        cleanDurationString += currentDuration[1];
+        cleanDurationString += currentDuration[3];
+        cleanDurationString += currentDuration[4];
+        int durationStringToInt = cleanDurationString.toInt();
+        addTimerData.duration = ((durationStringToInt/100) * 60 + (durationStringToInt - ((durationStringToInt/100) * 100)));
+        Serial.println("Confirmed... duration is " + String(addTimerData.duration));
+        currentDuration = "00:00";
+        write();
+        mode = MENU;
+        lcd.clear();
+        lcd.setCursor(0, selector.row);
+        lcd.print(selector.selector);
+        lcd.setCursor(0, selector.row);
+        menu.update();
+        return;
+      }
+      if(downButton.isPressedOnce()){
+        Serial.println("Confirmation denied... returning to mode::MENU");
+        currentDuration = "00:00";
+        mode = MENU;
+        lcd.clear();
+        lcd.setCursor(0, selector.row);
+        lcd.print(selector.selector);
+        lcd.setCursor(0, selector.row);
+        menu.update();
+        return;
+      }
+
+}
 
 
 
+void readAndParse(){
+  int it = 0;
+  for(int i = 0; EEPROM.read(i) == 128 && it < 16; i += sizeof(TimerData) + 1){
+    EEPROM.get(i+1, datas[it]);
+    datas[it].position = it;
+    it++;
+  }
+  TimerEntries = it;
+  Serial.println(datas[0].name);
+  Serial.println(datas[0].position);
+  Serial.println(datas[0].duration);
 
+}
+
+void write(){
+  Serial.println("Writing timerdata: Name = " + String(addTimerData.name) + ", Position = " + String(addTimerData.position) + ", Duration = " + String(addTimerData.duration));
+  //set Add data to the next position
+  datas[TimerEntries] = datas[TimerEntries-1];
+  //insert new timerdata into the previous position where Add was
+  datas[TimerEntries-1] = addTimerData;
+  //increment the new add data's position to reflect its new placement
+  datas[TimerEntries].position++;
+  //redo the menu to reflect the new changes
+  TimerEntries++;
+    for(int i = 0; i < TimerEntries; i++){
+      datas[i].position+=TimerEntries-3;
+    Serial.println("Name = " + String(datas[i].name) + ", Position = " + String(datas[i].position) + ", Duration = " + String(datas[i].duration));
+  }
+  
+  QueryPosition = 0;
+  selector.row = 0;
+  arrowIsOnBottom = false;
+  setupMenu();
+  //selector.row = 0;
+  //arrowIsOnBottom = false;
+  if(canWrite){
+    int writableByte = 0;
+    while(EEPROM.read(writableByte) == 128){
+      writableByte += sizeof(TimerData) + 1;
+    }
+    EEPROM.update(writableByte, 128);
+    EEPROM.put(writableByte + 1, addTimerData);
+    Serial.println("Write Complete. new Timerdata written to " + String(writableByte) + "; written block ends at " + String(writableByte + 1 + sizeof(TimerData)));
+  }else{
+    Serial.println("New Timerdata not written to EEPROM: Access denied; check canWrite variable");
+  }
+
+  //screens[addTimerData.position] = LiquidScreen(lines[addTimerData.position], lines[addTimerData.position+1]);
+  //menu.add_screen(screens[addTimerData.position]);
 }
 
 void loop() {
   upButton.manageButton();
   middleButton.manageButton();
   downButton.manageButton();
-  if(mode == MENU)
-    runMenu();
-  else if(mode == TIMER)
-    runTimer();
+  switch(mode){
+    case MENU:
+      runMenu();
+      break;
+    case TIMER:
+      runTimer();
+      break;
+    case ADDNAME:
+      addTimerName();
+      break;
+    case ADDDURATION:
+      addTimerDuration();
+      break;  
+    case CONFIRM:
+      confirm();
+      break;
+  }
 }

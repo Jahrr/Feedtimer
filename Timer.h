@@ -15,6 +15,7 @@ public:
     void reset();
     void stop();
     void toggle();
+    void addTime(int amountOfSeconds);
     void setDuration(int durationInSeconds);
     void setName(String n);
     int getDurationInSeconds() const;
@@ -24,12 +25,10 @@ public:
 
 private:
 
-    void count();
-
     int duration;
     int seconds;
     bool running;
-    char name[8];
+    String name;
 
     unsigned long startingMillis;
 

@@ -35,8 +35,8 @@ void Timer::toggle(){
   else stop();
 }
 
-void Timer::count() {
-
+void Timer::addTime(int amountOfSeconds){
+  seconds += amountOfSeconds;
 }
 
 bool Timer::manageTimer() {
@@ -58,9 +58,7 @@ void Timer::setDuration(int durationInSeconds) {
 }
 
 void Timer::setName(String n){
-  for(int i = 0; i < 8; i++){
-    name[i] = n[i];
-  }
+  name = n;
 }
 
 int Timer::getDurationInSeconds() const {
@@ -72,6 +70,6 @@ String Timer::getDurationAsString(){
 }
 
 String Timer::getName(){
-  return String(name);
+  return name;
 }
 
