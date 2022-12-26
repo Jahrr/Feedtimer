@@ -246,58 +246,34 @@ static String timerName;
 static char currentChar = 'A' - 1;
 static int pos = 0;
 if(upButton.isPressedOnce()){
+  setAdd("Enter Name");
+  lcd.print(timerName);
   if(currentChar + 1 <= 'Z' && currentChar != ' ' && currentChar != '<' && currentChar != '>'){
-    setAdd("Enter Name");
-    lcd.print(timerName);
     currentChar++;
-    lcd.print(currentChar);
-    lcd.setCursor(pos,1);
   }else if(currentChar == ' '){
-    setAdd("Enter Name");
-    lcd.print(timerName);
     currentChar = 'A';
-    lcd.print(currentChar);
-    lcd.setCursor(pos,1);
   }else if(currentChar == '>'){
-    setAdd("Enter Name");
-    lcd.print(timerName);
     currentChar = ' ';
-    lcd.print(currentChar);
-    lcd.setCursor(pos,1);    
   }else if(currentChar == '<'){
-    setAdd("Enter Name");
-    lcd.print(timerName);
     currentChar = '>';
-    lcd.print(currentChar);
-    lcd.setCursor(pos,1);    
   }
+  lcd.print(currentChar);
+  lcd.setCursor(pos,1);
 }
   if(downButton.isPressedOnce()){
+    setAdd("Enter Name");
+    lcd.print(timerName);
     if(currentChar - 1 >= 'A'){
-      setAdd("Enter Name");
-      lcd.print(timerName);
       currentChar--;
-      lcd.print(currentChar);
-      lcd.setCursor(pos,1);
     }else if(currentChar == 'A'){
-      setAdd("Enter Name");
-      lcd.print(timerName);
       currentChar = ' ';
-      lcd.print(currentChar);
-      lcd.setCursor(pos,1);    
     }else if(currentChar == ' ' || currentChar == '@'){
-      setAdd("Enter Name");
-      lcd.print(timerName);
       currentChar = '>';
-      lcd.print(currentChar);
-      lcd.setCursor(pos,1);    
     }else if(currentChar == '>'){
-      setAdd("Enter Name");
-      lcd.print(timerName);
       currentChar = '<';
-      lcd.print(currentChar);
-      lcd.setCursor(pos,1);    
     }
+    lcd.print(currentChar);
+    lcd.setCursor(pos,1);
   }
 
   if(middleButton.isPressedOnce()){ 
