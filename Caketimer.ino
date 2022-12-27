@@ -80,9 +80,10 @@ MENU, TIMER, ADDNAME, ADDDURATION, CONFIRM
 
 
 //variables
+Timer displayTimer;
 Timer timer;
 
-
+const unsigned int displayTimeout = 60;
 unsigned int TimerEntries = 0;
 unsigned int QueryPosition = 0;
 unsigned int mode = MENU;
@@ -126,6 +127,8 @@ void setup() {
   lcd.setCursor(0, 0);
   lcd.print(selector.selector);
   lcd.setCursor(0, 0);
+  displayTimer.setDuration(displayTimeout);
+  displayTimer.start();
 }
 
 void setupMenu(){
@@ -453,6 +456,16 @@ void loop() {
   upButton.manageButton();
   middleButton.manageButton();
   downButton.manageButton();
+  displayTimer.manageTimer();
+  if(upButton.isPressed() || middleButton.isPressed() || downButton.isPressed()){
+    displayTimer.reset();
+    displayTimer.start();
+    lcd.display();
+  }
+  if(displayTimer.getDurationInSeconds() == 0){
+    lcd.noDisplay();
+  }
+
   switch(mode){
     case MENU:
       runMenu();

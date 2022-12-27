@@ -62,7 +62,7 @@ void Timer::setName(String n){
 }
 
 int Timer::getDurationInSeconds() const {
-    return duration;
+    return seconds;
 }
 
 String Timer::getDurationAsString(){
