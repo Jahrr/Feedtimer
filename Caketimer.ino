@@ -32,6 +32,8 @@
 #include "Timer.h"
 #include "Button.h"
 
+void(* resetFunc) (void) = 0;
+
 const bool canWrite = true;
 
 //Initialize pins
@@ -40,6 +42,7 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 const int upButtonPin = 30;
 const int middleButtonPin = 34;
 const int downButtonPin = 38;
+const int sideButtonPin = 42;
 
 
 struct Selector{
@@ -74,19 +77,21 @@ struct TimerData{
 
 
 enum mode{
-MENU, TIMER, ADDNAME, ADDDURATION, CONFIRM
+MENU, TIMER, ADDNAME, ADDDURATION, CONFIRM, DELETING
   
 };
 
 
 //variables
-Timer displayTimer;
-Timer timer;
+Timer displayTimer(false);
+Timer timer(true);
 
 const unsigned int displayTimeout = 60;
 unsigned int TimerEntries = 0;
 unsigned int QueryPosition = 0;
 unsigned int mode = MENU;
+
+bool confirmed = false;
 
 
 TimerData td("NULL", 0, 0);
@@ -112,6 +117,7 @@ Selector selector;
 Button upButton(upButtonPin);
 Button middleButton(middleButtonPin);
 Button downButton(downButtonPin);
+Button sideButton(sideButtonPin);
 
 void setup() {
   // set up the LCD's number of columns and rows:
@@ -183,12 +189,14 @@ void runMenu(){
       menu++;
     }
 
+
     lcd.clear();
     lcd.setCursor(selector.column, selector.row);
     menu.update();
   
 
   }
+  
   if(middleButton.isPressedOnce()){
 
     if(QueryPosition == TimerEntries - 1){
@@ -206,13 +214,62 @@ void runMenu(){
     mode = TIMER;
     }
 
-
+  }
+  if(sideButton.isPressedOnce() && QueryPosition != TimerEntries - 1){
+    Serial.println("sideButton pressed");
+    setAdd("Delete?");
+    lcd.print("L/n R/y");
+    mode = DELETING;
+    return;
   }
 
 }
 
-void runTimer(){
 
+void deleteTimer(){
+
+  if(confirmed){
+    TimerData compareData;
+    for(int i = 0; i < 272; i += sizeof(TimerData) + 1){
+      EEPROM.get(i+1, compareData);
+      Serial.println(String(compareData.name) + ":" + String(datas[QueryPosition].name));
+      if(String(compareData.name) == String(datas[QueryPosition].name)){
+        EEPROM.update(i, 254);
+        Serial.println("Deleted.");
+        resetFunc();
+      }      
+    }
+    Serial.println("Error: Could not locate memory address of timer; timer not deleted.");
+    mode = MENU;
+    lcd.clear();
+    lcd.setCursor(0, selector.row);
+    lcd.print(selector.selector);
+    lcd.setCursor(0, selector.row);
+    menu.update();
+    return;
+  }
+  else{
+    if(upButton.isPressedOnce()){
+      confirmed = true;
+      Serial.println("Deletion confirmed");
+    }
+    if(downButton.isPressedOnce()){
+      mode = MENU;
+      lcd.clear();
+      lcd.setCursor(0, selector.row);
+      lcd.print(selector.selector);
+      lcd.setCursor(0, selector.row);
+      menu.update();
+      return;
+    }
+        
+  }
+
+
+
+}
+
+void runTimer(){
   lcd.setCursor(0,0);
   lcd.print(timer.getName());
   lcd.setCursor(0, 1);
@@ -362,7 +419,7 @@ void addTimerDuration(){
   }
 
 
-void confirm(){
+void confirmTimer(){
 
 
       if(upButton.isPressedOnce()){
@@ -403,7 +460,10 @@ void confirm(){
 
 void readAndParse(){
   int it = 0;
-  for(int i = 0; EEPROM.read(i) == 128 && it < 16; i += sizeof(TimerData) + 1){
+  for(int i = 0; (EEPROM.read(i) == 128 || EEPROM.read(i) == 254) && it < 16; i += sizeof(TimerData) + 1){
+    if(EEPROM.read(i) == 254){
+      continue;
+    }
     EEPROM.get(i+1, datas[it]);
     datas[it].position = it;
     it++;
@@ -456,13 +516,14 @@ void loop() {
   upButton.manageButton();
   middleButton.manageButton();
   downButton.manageButton();
+  sideButton.manageButton();
   displayTimer.manageTimer();
   if(upButton.isPressed() || middleButton.isPressed() || downButton.isPressed()){
     displayTimer.reset();
     displayTimer.start();
     lcd.display();
   }
-  if(displayTimer.getDurationInSeconds() == 0){
+  if(displayTimer.getDurationInSeconds() == 0 && mode != TIMER){
     lcd.noDisplay();
   }
 
@@ -480,7 +541,10 @@ void loop() {
       addTimerDuration();
       break;  
     case CONFIRM:
-      confirm();
+      confirmTimer();
+      break;
+    case DELETING:
+      deleteTimer();
       break;
   }
 }

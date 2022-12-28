@@ -9,6 +9,7 @@ class Timer{
 public:
     Timer();
     explicit Timer(int durationInSeconds);
+    explicit Timer(bool isVisible);
     ~Timer();
 
     void start();
@@ -28,6 +29,7 @@ private:
     int duration;
     int seconds;
     bool running;
+    bool visible;
     String name;
 
     unsigned long startingMillis;
