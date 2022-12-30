@@ -12,6 +12,9 @@ Timer::Timer(int durationInSeconds) {
     duration = durationInSeconds;
 }
 
+Timer::Timer(bool isVisible) : visible{isVisible}{
+
+}
 
 Timer::~Timer() {
 
@@ -42,6 +45,9 @@ void Timer::addTime(int amountOfSeconds){
 bool Timer::manageTimer() {
     if(running){
       if(millis() > startingMillis + 1000){
+        if(visible){
+          lcd.clear();
+        }
         seconds--;
         startingMillis = millis();
       }
@@ -62,11 +68,12 @@ void Timer::setName(String n){
 }
 
 int Timer::getDurationInSeconds() const {
-    return duration;
+    return seconds;
 }
 
 String Timer::getDurationAsString(){
-    return String(seconds/60) + ":" + (((seconds % 60 < 10) && (seconds % 60 > 0)) ? "0" : "") + String(seconds - (seconds/60) * 60) + (seconds % 60 == 0 ? "0" : "");
+  Serial.println(seconds%60);
+  return String(seconds/60) + ":" + (((seconds % 60 < 10) && (seconds % 60 > 0)) ? "0" : "") + String(seconds%60) + (seconds % 60 == 0 ? "0" : "");
 }
 
 String Timer::getName(){
