@@ -17,8 +17,8 @@
  This program is a timer that is intended to be connected to a caker/feeder. It can store multiple timers in EEPROM,
  has an interactive menu, and a naming system.
 
- TODO: Delete timers, Ability to backspace on name/duration of new timer, 
- simplify and clean up code, add number support to naming system, 
+ TODO: Ability to backspace on name/duration of new timer, 
+ simplify and clean up code, add number/lowercase support to naming system, 
  make confirmation universal instead of being tied to duration
 
  Low Priority TODO: Rename timers, folders
@@ -305,13 +305,18 @@ void addTimerName(){
 static String timerName;
 static char currentChar = 'A' - 1;
 static int pos = 0;
+const char charMinArr[3]{'A', 'a', '0'};
+const char charMaxArr[3]{'Z', 'z', '9'};
+static char charMin = 'A';
+static char charMax = 'Z';
+static int charArrIt = 0;
 if(upButton.isPressedOnce()){
   setAdd("Enter Name");
   lcd.print(timerName);
-  if(currentChar + 1 <= 'Z' && currentChar != ' ' && currentChar != '<' && currentChar != '>'){
+  if(currentChar + 1 <= charMax && currentChar != ' ' && currentChar != '<' && currentChar != '>'){
     currentChar++;
   }else if(currentChar == ' '){
-    currentChar = 'A';
+    currentChar = charMin;
   }else if(currentChar == '>'){
     currentChar = ' ';
   }else if(currentChar == '<'){
@@ -323,11 +328,11 @@ if(upButton.isPressedOnce()){
   if(downButton.isPressedOnce()){
     setAdd("Enter Name");
     lcd.print(timerName);
-    if(currentChar - 1 >= 'A'){
+    if(currentChar - 1 >= charMin && currentChar != ' ' && currentChar != '>' && currentChar != '<'){
       currentChar--;
-    }else if(currentChar == 'A'){
+    }else if(currentChar == charMin){
       currentChar = ' ';
-    }else if(currentChar == ' ' || currentChar == '@'){
+    }else if(currentChar == ' ' || currentChar == charMin-1){
       currentChar = '>';
     }else if(currentChar == '>'){
       currentChar = '<';
@@ -372,8 +377,16 @@ if(upButton.isPressedOnce()){
     lcd.print(timerName);
 
   }
-
-
+  if(sideButton.isPressedOnce()){
+    Serial.println(charArrIt);
+    charArrIt = (charArrIt < 2) ? charArrIt + 1 : 0;
+    Serial.println(charArrIt);
+    charMin = charMinArr[charArrIt];
+    charMax = charMaxArr[charArrIt];
+    currentChar = charMin;
+    lcd.print(currentChar);
+    lcd.setCursor(pos,1);
+  }
 
 
 }
