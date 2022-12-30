@@ -13,8 +13,7 @@ Button::~Button(){}
 void Button::manageButton(){
   if(digitalRead(pin) == HIGH){
     b_wasPressed = (b_isPressed == false) ? true : false;
-    b_isPressed = true;
-    
+    b_isPressed = true; 
   }else{
     b_isPressed = false;
     b_wasPressed = false;
