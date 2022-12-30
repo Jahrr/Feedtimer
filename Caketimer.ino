@@ -17,7 +17,7 @@
  This program is a timer that is intended to be connected to a caker/feeder. It can store multiple timers in EEPROM,
  has an interactive menu, and a naming system.
 
- TODO: Ability to backspace on name/duration of new timer, 
+ TODO: Ability to backspace on duration of new timer, 
  simplify and clean up code, make confirmation universal instead of being tied to duration,
  add long press support to the button class, make Button::isPressedOnce better (registers two presses per press often)
 
