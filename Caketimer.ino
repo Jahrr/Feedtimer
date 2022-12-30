@@ -156,6 +156,12 @@ void setupMenu(){
   //Serial.println(menu.change_screen(&screens[QueryPosition]));
 }
 
+int getCharsetIterator(char currentChar){
+  if(currentChar > 64 && currentChar < 91) return 0;
+  else if(currentChar > 96) return 1;
+  else if(currentChar < 58) return 2;
+}
+
 void runMenu(){
   lcd.setCursor(selector.column, selector.row);
   lcd.print(selector.selector);
@@ -344,6 +350,10 @@ if(upButton.isPressedOnce()){
   if(middleButton.isPressedOnce()){ 
     if(currentChar == '@'){
       timerName += ' ';
+      currentChar = 'A' - 1;
+      pos++;
+      setAdd("Enter Name");
+      lcd.print(timerName);
     }else if (currentChar == '>'){
       //move to duration set
       //write to allocated timerdata to prepare for write to eeprom/flash 
@@ -357,6 +367,20 @@ if(upButton.isPressedOnce()){
       lcd.setCursor(0,1);    
       return;  
     }else if (currentChar == '<'){ 
+      //backspace time baby
+      if(pos > 0){
+        pos--;
+        currentChar = timerName[pos];
+        //sync charset
+        int charsetIt = getCharsetIterator(currentChar);
+        charMin = charMinArr[charsetIt];
+        charMax = charMaxArr[charsetIt];                
+        timerName = timerName.substring(0, pos);
+        setAdd("Enter Name");
+        lcd.print(timerName);
+        lcd.print(currentChar);
+        lcd.setCursor(pos,1);
+      }else{
       timerName = "";
       pos = 0;
       currentChar = 'A' - 1;
@@ -368,13 +392,15 @@ if(upButton.isPressedOnce()){
       lcd.clear();
       menu.update();
       return;
+      }
     }else{
     timerName += currentChar;
-    }
-    currentChar = 'A' - 1;
+    currentChar = ' ';
     pos++;
     setAdd("Enter Name");
     lcd.print(timerName);
+    }
+
 
   }
   if(sideButton.isPressedOnce()){
