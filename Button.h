@@ -17,8 +17,11 @@ public:
 
 private:
   int pin;
+  unsigned long startingMillis;
+  unsigned long activationTime;
   bool b_isPressed;
   bool b_wasPressed;
+  bool b_delayedWasPressed;
   
 
 
