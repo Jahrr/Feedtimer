@@ -22,6 +22,7 @@ private:
   bool b_isPressed;
   bool b_wasPressed;
   bool b_delayedWasPressed;
+  bool b_delayedEligible;
   
 
 
