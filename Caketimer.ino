@@ -516,6 +516,7 @@ void readAndParse(){
 }
 
 void write(){
+  /*
   Serial.println("Writing timerdata: Name = " + String(addTimerData.name) + ", Position = " + String(addTimerData.position) + ", Duration = " + String(addTimerData.duration));
   //set Add data to the next position
   datas[TimerEntries] = datas[TimerEntries-1];
@@ -536,6 +537,7 @@ void write(){
   setupMenu();
   //selector.row = 0;
   //arrowIsOnBottom = false;
+*/  
   if(canWrite){
     int writableByte = 0;
     while(EEPROM.read(writableByte) == 128){
@@ -547,7 +549,7 @@ void write(){
   }else{
     Serial.println("New Timerdata not written to EEPROM: Access denied; check canWrite variable");
   }
-
+  resetFunc();
   //screens[addTimerData.position] = LiquidScreen(lines[addTimerData.position], lines[addTimerData.position+1]);
   //menu.add_screen(screens[addTimerData.position]);
 }
